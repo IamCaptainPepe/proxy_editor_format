@@ -1,128 +1,84 @@
 #!/bin/bash
 
-echo "===================================================================="
-echo "Скрипт для обработки прокси-серверов с заданным форматом вывода"
-echo "===================================================================="
-
 # Файл для сохранения обработанных прокси
 OUTPUT_FILE="output_proxies.txt"
 
-echo "===================================================================="
-echo "Функции для проверки корректности IP-адреса и порта"
-echo "===================================================================="
+# Функция для отображения меню и выбора формата прокси
+get_proxy_format() {
+    echo "============================"
+    echo "   Proxy Format Selection Menu   "
+    echo "============================"
+    echo "1. With authentication (log:pass@ip:port)"
+    echo "2. Without authentication (ip:port)"
+    echo "3. Custom format"
+    echo ""
+    echo "Example custom format: log:pass@ip:port or ip:port"
+    echo "Available placeholders: log, pass, ip, port."
+    echo "Ensure your format includes 'ip' and 'port'."
+    echo "============================"
 
-# Функция для проверки корректности IP-адреса
-is_valid_ip() {
-    local ip=$1
-    local IFS='.'
-    local -a octets=($ip)
-
-    # Проверка, что IP состоит из 4 октетов
-    if [ ${#octets[@]} -ne 4 ]; then
-        return 1
-    fi
-
-    for octet in "${octets[@]}"; do
-        # Проверка, что октет является числом
-        if ! [[ $octet =~ ^[0-9]+$ ]]; then
-            return 1
-        fi
-        # Проверка диапазона октета
-        if (( octet < 0 || octet > 255 )); then
-            return 1
-        fi
-    done
-
-    return 0
-}
-
-# Функция для проверки корректности порта
-is_valid_port() {
-    local port=$1
-    if ! [[ $port =~ ^[0-9]+$ ]]; then
-        return 1
-    fi
-    if (( port < 1 || port > 65535 )); then
-        return 1
-    fi
-    return 0
-}
-
-echo "===================================================================="
-echo "Функция для запроса формата прокси от пользователя с меню выбора"
-echo "===================================================================="
-
-get_user_format() {
     while true; do
-        echo -e "\033c" # Очистка экрана
-        echo "=================================================="
-        echo "          Скрипт обработки прокси-серверов         "
-        echo "=================================================="
-        echo ""
-
-        echo "Выберите тип формата вывода прокси:"
-        echo "1. С аутентификацией (log:pass@ip:port)"
-        echo "2. Без аутентификации (ip:port)"
-        echo "3. Пользовательский формат"
-        echo ""
-        read -p "Ваш выбор (1-3): " format_choice
-
-        echo "Отладка: выбран формат $format_choice" # Отладочный вывод
-
-        case "$format_choice" in
+        read -p "Choose proxy format (1-3): " choice
+        case $choice in
             1)
-                user_format="log:pass@ip:port"
-                echo "Выбран формат: log:pass@ip:port"
+                format="log:pass@ip:port"
                 break
                 ;;
             2)
-                user_format="ip:port"
-                echo "Выбран формат: ip:port"
+                format="ip:port"
                 break
                 ;;
             3)
-                echo "Введите пользовательский формат вывода:"
-                read -p "Формат вывода: " user_format
-                # Проверка наличия обязательных плейсхолдеров
-                REQUIRED_PLACEHOLDERS=("ip" "port")
-                missing=()
-                for placeholder in "${REQUIRED_PLACEHOLDERS[@]}"; do
-                    if [[ ! $user_format =~ $placeholder ]]; then
-                        missing+=("$placeholder")
-                    fi
-                done
-
-                if [ ${#missing[@]} -ne 0 ]; then
-                    echo "Ошибка: Формат должен содержать плейсхолдеры: ${missing[*]}. Пожалуйста, попробуйте снова."
-                    echo ""
-                else
-                    echo "Выбран пользовательский формат: $user_format"
+                read -p "Enter your custom format (e.g., log:pass@ip:port): " format
+                if [[ "$format" =~ "ip" && "$format" =~ "port" ]]; then
                     break
+                else
+                    echo "Error: The format must include 'ip' and 'port'. Please try again."
                 fi
                 ;;
             *)
-                echo "Некорректный выбор. Пожалуйста, выберите 1, 2 или 3."
-                echo ""
+                echo "Error: Enter a number between 1 and 3."
                 ;;
         esac
     done
-
-    echo "$user_format"
 }
 
-echo "===================================================================="
-echo "Главная функция скрипта"
-echo "===================================================================="
+# Функция для обработки прокси, вводимых в терминале
+process_proxies() {
+    echo "Paste your list of proxies (each on a new line), and press Ctrl+D to finish input:"
+    > "$OUTPUT_FILE"  # Очистить или создать output файл
 
-main() {
-    echo ""
+    # Чтение прокси из терминала
+    while IFS= read -r proxy; do
+        # Разбор прокси на части: log, pass, ip, и port
+        if [[ $proxy =~ ^([^:]+):([^@]+)@(.+):([0-9]+)$ ]]; then
+            log="${BASH_REMATCH[1]}"
+            pass="${BASH_REMATCH[2]}"
+            ip="${BASH_REMATCH[3]}"
+            port="${BASH_REMATCH[4]}"
+        elif [[ $proxy =~ ^(.+):([0-9]+)$ ]]; then
+            ip="${BASH_REMATCH[1]}"
+            port="${BASH_REMATCH[2]}"
+            log=""
+            pass=""
+        fi
 
-    # Получение формата от пользователя через меню
-    user_format=$(get_user_format)
-    echo ""
-    echo "Выбранный формат: $user_format"
-    echo ""
+        # Заменяем плейсхолдеры в формате на реальные значения
+        formatted_proxy="${format/log/$log}"
+        formatted_proxy="${formatted_proxy/pass/$pass}"
+        formatted_proxy="${formatted_proxy/ip/$ip}"
+        formatted_proxy="${formatted_proxy/port/$port}"
+        
+        # Сохраняем результат в файл и выводим в консоль
+        echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
+    done
+
+    echo "Processing completed. Results saved in $OUTPUT_FILE"
 }
 
-# Запуск главной функции
-main
+# Запуск функции для выбора формата прокси и обработки
+echo "============================"
+echo "   Proxy Processing Script   "
+echo "============================"
+get_proxy_format
+process_proxies
