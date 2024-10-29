@@ -67,7 +67,7 @@ get_user_format() {
         echo -e "${BLUE}          Скрипт обработки прокси-серверов         ${NC}"
         echo -e "${BLUE}==================================================${NC}"
         echo ""
-        echo -e "${YELLOW}Введите формат вывода, используя следующие переменные:${NC}"
+        echo -e "${YELLOW}Введите формат вывода прокси, используя следующие переменные:${NC}"
         echo "  - log   : Логин (username)"
         echo "  - pass  : Пароль (password)"
         echo "  - ip    : IP-адрес прокси"
@@ -82,7 +82,8 @@ get_user_format() {
         echo -e "     ${GREEN}ip:port${NC}"
         echo "     Пример: 192.168.1.1:8080"
         echo ""
-        read -p "Введите формат вывода (например, log:pass@ip:port): " user_format
+        echo -e "${YELLOW}Введите формат вывода и пример (например, log:pass@ip:port):${NC}"
+        read -p "Формат вывода: " user_format
 
         # Проверка наличия обязательных плейсхолдеров
         REQUIRED_PLACEHOLDERS=("ip" "port")
