@@ -62,34 +62,42 @@ is_valid_port() {
 # ====================================================================
 
 get_user_format() {
-    echo -e "${BLUE}==================================================${NC}"
-    echo -e "${BLUE}          Скрипт обработки прокси-серверов         ${NC}"
-    echo -e "${BLUE}==================================================${NC}"
-    echo ""
-    echo -e "${YELLOW}Введите формат вывода, используя следующие переменные:${NC}"
-    echo "  - log   : Логин (username)"
-    echo "  - pass  : Пароль (password)"
-    echo "  - ip    : IP-адрес прокси"
-    echo "  - port  : Порт прокси"
-    echo ""
-    echo -e "${YELLOW}Примеры форматов вывода:${NC}"
-    echo "  1. С аутентификацией (логин и пароль):"
-    echo -e "     ${GREEN}log:pass@ip:port${NC}"
-    echo "     Пример: user1:password1@192.168.1.1:8080"
-    echo ""
-    echo "  2. Без аутентификации:"
-    echo -e "     ${GREEN}ip:port${NC}"
-    echo "     Пример: 192.168.1.1:8080"
-    echo ""
-    read -p "Введите формат вывода: " user_format
+    while true; do
+        echo -e "${BLUE}==================================================${NC}"
+        echo -e "${BLUE}          Скрипт обработки прокси-серверов         ${NC}"
+        echo -e "${BLUE}==================================================${NC}"
+        echo ""
+        echo -e "${YELLOW}Введите формат вывода, используя следующие переменные:${NC}"
+        echo "  - log   : Логин (username)"
+        echo "  - pass  : Пароль (password)"
+        echo "  - ip    : IP-адрес прокси"
+        echo "  - port  : Порт прокси"
+        echo ""
+        echo -e "${YELLOW}Примеры форматов вывода:${NC}"
+        echo "  1. С аутентификацией (логин и пароль):"
+        echo -e "     ${GREEN}log:pass@ip:port${NC}"
+        echo "     Пример: user1:password1@192.168.1.1:8080"
+        echo ""
+        echo "  2. Без аутентификации:"
+        echo -e "     ${GREEN}ip:port${NC}"
+        echo "     Пример: 192.168.1.1:8080"
+        echo ""
+        read -p "Введите формат вывода (например, log:pass@ip:port): " user_format
 
-    # Проверка наличия обязательных плейсхолдеров
-    REQUIRED_PLACEHOLDERS=("ip" "port")
-    for placeholder in "${REQUIRED_PLACEHOLDERS[@]}"; do
-        if [[ ! $user_format =~ $placeholder ]]; then
-            echo -e "${RED}Ошибка:${NC} Формат должен содержать плейсхолдер '$placeholder'. Пожалуйста, попробуйте снова."
-            get_user_format
-            return
+        # Проверка наличия обязательных плейсхолдеров
+        REQUIRED_PLACEHOLDERS=("ip" "port")
+        missing=()
+        for placeholder in "${REQUIRED_PLACEHOLDERS[@]}"; do
+            if [[ ! $user_format =~ $placeholder ]]; then
+                missing+=("$placeholder")
+            fi
+        done
+
+        if [ ${#missing[@]} -ne 0 ]; then
+            echo -e "${RED}Ошибка:${NC} Формат должен содержать плейсхолдеры: ${missing[*]}. Пожалуйста, попробуйте снова."
+            echo ""
+        else
+            break
         fi
     done
 
@@ -199,10 +207,6 @@ output_proxies() {
 # ====================================================================
 
 main() {
-    echo ""
-    echo -e "${BLUE}==================================================${NC}"
-    echo -e "${BLUE}          Скрипт обработки прокси-серверов         ${NC}"
-    echo -e "${BLUE}==================================================${NC}"
     echo ""
 
     # Получение формата от пользователя
