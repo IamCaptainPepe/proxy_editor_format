@@ -60,7 +60,7 @@ is_valid_port() {
 }
 
 # ====================================================================
-# Функция для запроса формата прокси от пользователя
+# Функция для запроса формата прокси от пользователя с меню выбора
 # ====================================================================
 
 get_user_format() {
@@ -69,39 +69,50 @@ get_user_format() {
         echo -e "${BLUE}          Скрипт обработки прокси-серверов         ${NC}"
         echo -e "${BLUE}==================================================${NC}"
         echo ""
-        echo -e "${YELLOW}Введите формат вывода прокси, используя следующие переменные:${NC}"
-        echo "  - log   : Логин (username)"
-        echo "  - pass  : Пароль (password)"
-        echo "  - ip    : IP-адрес прокси"
-        echo "  - port  : Порт прокси"
-        echo ""
-        echo -e "${YELLOW}Примеры форматов вывода:${NC}"
-        echo "  1. С аутентификацией (логин и пароль):"
-        echo -e "     ${GREEN}log:pass@ip:port${NC}"
-        echo "     Пример: user1:password1@192.168.1.1:8080"
-        echo ""
-        echo "  2. Без аутентификации:"
-        echo -e "     ${GREEN}ip:port${NC}"
-        echo "     Пример: 192.168.1.1:8080"
-        echo ""
-        echo -e "${YELLOW}Введите формат вывода и пример (например, log:pass@ip:port):${NC}"
-        read -p "Формат вывода: " user_format
 
-        # Проверка наличия обязательных плейсхолдеров
-        REQUIRED_PLACEHOLDERS=("ip" "port")
-        missing=()
-        for placeholder in "${REQUIRED_PLACEHOLDERS[@]}"; do
-            if [[ ! $user_format =~ $placeholder ]]; then
-                missing+=("$placeholder")
-            fi
-        done
+        echo -e "${YELLOW}Выберите тип формата вывода прокси:${NC}"
+        echo "1. С аутентификацией (log:pass@ip:port)"
+        echo "2. Без аутентификации (ip:port)"
+        echo "3. Пользовательский формат"
+        echo ""
+        read -p "Ваш выбор (1-3): " format_choice
 
-        if [ ${#missing[@]} -ne 0 ]; then
-            echo -e "${RED}Ошибка:${NC} Формат должен содержать плейсхолдеры: ${missing[*]}. Пожалуйста, попробуйте снова."
-            echo ""
-        else
-            break
-        fi
+        case "$format_choice" in
+            1)
+                user_format="log:pass@ip:port"
+                echo -e "${GREEN}Выбран формат: log:pass@ip:port${NC}"
+                break
+                ;;
+            2)
+                user_format="ip:port"
+                echo -e "${GREEN}Выбран формат: ip:port${NC}"
+                break
+                ;;
+            3)
+                echo -e "${YELLOW}Введите пользовательский формат вывода:${NC}"
+                read -p "Формат вывода: " user_format
+                # Проверка наличия обязательных плейсхолдеров
+                REQUIRED_PLACEHOLDERS=("ip" "port")
+                missing=()
+                for placeholder in "${REQUIRED_PLACEHOLDERS[@]}"; do
+                    if [[ ! $user_format =~ $placeholder ]]; then
+                        missing+=("$placeholder")
+                    fi
+                done
+
+                if [ ${#missing[@]} -ne 0 ]; then
+                    echo -e "${RED}Ошибка:${NC} Формат должен содержать плейсхолдеры: ${missing[*]}. Пожалуйста, попробуйте снова."
+                    echo ""
+                else
+                    echo -e "${GREEN}Выбран пользовательский формат: $user_format${NC}"
+                    break
+                fi
+                ;;
+            *)
+                echo -e "${RED}Некорректный выбор. Пожалуйста, выберите 1, 2 или 3.${NC}"
+                echo ""
+                ;;
+        esac
     done
 
     echo "$user_format"
@@ -229,7 +240,7 @@ output_proxies() {
 main() {
     echo ""
 
-    # Получение формата от пользователя
+    # Получение формата от пользователя через меню
     user_format=$(get_user_format)
     echo ""
     echo -e "${GREEN}Выбранный формат:${NC} $user_format"
