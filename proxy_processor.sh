@@ -54,7 +54,17 @@ process_proxies() {
     # Чтение прокси из терминала
     while IFS= read -r proxy; do
         # Разбор прокси на части: log, pass, ip, и port
-        if [[ $proxy =~ ^([^:]+):([^@]+)@([^:]+):([0-9]+)$ ]]; then
+        if [[ $proxy =~ ^([^:]+):([^:]+):([^:]+):([^:]+)$ ]]; then
+            ip="${BASH_REMATCH[1]}"
+            port="${BASH_REMATCH[2]}"
+            log="${BASH_REMATCH[3]}"
+            pass="${BASH_REMATCH[4]}"
+        elif [[ $proxy =~ ^([^:]+)@([^:]+):([0-9]+)$ ]]; then
+            log="${BASH_REMATCH[1]}"
+            ip="${BASH_REMATCH[2]}"
+            port="${BASH_REMATCH[3]}"
+            pass=""
+        elif [[ $proxy =~ ^([^:]+):([^@]+)@([^:]+):([0-9]+)$ ]]; then
             log="${BASH_REMATCH[1]}"
             pass="${BASH_REMATCH[2]}"
             ip="${BASH_REMATCH[3]}"
