@@ -10,14 +10,16 @@ choose_proxy_type() {
     echo "============================"
     echo "1. HTTP"
     echo "2. SOCKS"
+    echo "3. No prefix"
     echo "============================"
 
     while true; do
-        read -p "Choose proxy type (1 for HTTP, 2 for SOCKS): " choice
+        read -p "Choose proxy type (1 for HTTP, 2 for SOCKS, 3 for No prefix): " choice
         case $choice in
             1) prefix="http"; break ;;
             2) prefix="socks"; break ;;
-            *) echo "Error: Please enter 1 or 2." ;;
+            3) prefix=""; break ;;
+            *) echo "Error: Please enter 1, 2, or 3." ;;
         esac
     done
 }
@@ -29,12 +31,13 @@ choose_port_option() {
     echo "============================"
     echo "1. Use the port specified in each proxy"
     echo "2. Set a custom port for all proxies"
+    echo "3. Specify port manually if missing in proxy"
     echo "============================"
 
     while true; do
-        read -p "Choose port option (1 or 2): " port_choice
+        read -p "Choose port option (1, 2, or 3): " port_choice
         case $port_choice in
-            1) use_default_port=true; break ;;
+            1) use_default_port=true; manual_port=false; break ;;
             2)
                 read -p "Enter your custom port: " custom_port
                 # Проверка, что порт - это число от 1 до 65535
@@ -42,10 +45,12 @@ choose_port_option() {
                     echo "Invalid port number. Please enter a valid port."
                 else
                     use_default_port=false
+                    manual_port=false
                     break
                 fi
                 ;;
-            *) echo "Error: Please enter 1 or 2." ;;
+            3) use_default_port=false; manual_port=true; break ;;
+            *) echo "Error: Please enter 1, 2, or 3." ;;
         esac
     done
 }
@@ -107,6 +112,12 @@ process_proxies() {
                 echo "No port specified in $proxy, using default port 8080."
                 port="8080"
             fi
+        elif [ "$manual_port" = true ] && [[ -z "$port" ]]; then
+            read -p "Enter port for $ip: " port
+            if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -le 0 ] || [ "$port" -gt 65535 ]; then
+                echo "Invalid port number. Skipping this proxy."
+                continue
+            fi
         else
             port="$custom_port"
         fi
@@ -118,8 +129,12 @@ process_proxies() {
         formatted_proxy="${formatted_proxy//ip/$ip}"
         formatted_proxy="${formatted_proxy//port/$port}"
 
-        # Добавляем префикс и сохраняем результат в файл
-        echo "$prefix://$formatted_proxy" | tee -a "$OUTPUT_FILE"
+        # Добавляем префикс (если выбран) и сохраняем результат в файл
+        if [[ -n "$prefix" ]]; then
+            echo "$prefix://$formatted_proxy" | tee -a "$OUTPUT_FILE"
+        else
+            echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
+        fi
     done
 
     echo "Processing completed. Results saved in $OUTPUT_FILE"
