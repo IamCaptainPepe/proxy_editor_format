@@ -3,47 +3,66 @@
 # Файл для сохранения обработанных прокси
 OUTPUT_FILE="output_proxies.txt"
 
-# Функция для отображения меню и выбора формата прокси
-get_proxy_format() {
+# Функция для выбора типа прокси
+choose_proxy_type() {
     echo "============================"
-    echo "   Proxy Format Selection Menu   "
+    echo "   Proxy Type Selection Menu   "
     echo "============================"
-    echo "1. Add prefix (http or socks)"
-    echo "2. Custom format"
-    echo ""
-    echo "Example custom format: log:pass@ip:port or ip:port"
-    echo "Available placeholders for custom format: log, pass, ip, port."
-    echo "Ensure your format includes 'ip' and 'port'."
+    echo "1. HTTP"
+    echo "2. SOCKS"
     echo "============================"
 
     while true; do
-        read -p "Choose proxy format (1-2): " choice
+        read -p "Choose proxy type (1 for HTTP, 2 for SOCKS): " choice
         case $choice in
-            1)
-                while true; do
-                    read -p "Enter prefix to add (http or socks): " prefix
-                    if [[ "$prefix" == "http" || "$prefix" == "socks" ]]; then
-                        format="$prefix://ip:port"
-                        break
-                    else
-                        echo "Error: Please enter 'http' or 'socks'."
-                    fi
-                done
-                break
-                ;;
-            2)
-                read -p "Enter your custom format (e.g., log:pass@ip:port): " format
-                if [[ "$format" =~ "ip" && "$format" =~ "port" ]]; then
-                    break
-                else
-                    echo "Error: The format must include 'ip' and 'port'. Please try again."
-                fi
-                ;;
-            *)
-                echo "Error: Enter a number between 1 and 2."
-                ;;
+            1) prefix="http"; break ;;
+            2) prefix="socks"; break ;;
+            *) echo "Error: Please enter 1 or 2." ;;
         esac
     done
+}
+
+# Функция для выбора порта
+choose_port_option() {
+    echo "============================"
+    echo "   Port Selection Menu   "
+    echo "============================"
+    echo "1. Use the port specified in each proxy"
+    echo "2. Set a custom port for all proxies"
+    echo "============================"
+
+    while true; do
+        read -p "Choose port option (1 or 2): " port_choice
+        case $port_choice in
+            1) use_default_port=true; break ;;
+            2)
+                read -p "Enter your custom port: " custom_port
+                # Проверка, что порт - это число от 1 до 65535
+                if ! [[ "$custom_port" =~ ^[0-9]+$ ]] || [ "$custom_port" -le 0 ] || [ "$custom_port" -gt 65535 ]; then
+                    echo "Invalid port number. Please enter a valid port."
+                else
+                    use_default_port=false
+                    break
+                fi
+                ;;
+            *) echo "Error: Please enter 1 or 2." ;;
+        esac
+    done
+}
+
+# Функция для выбора формата вывода
+get_proxy_format() {
+    echo "============================"
+    echo "   Proxy Output Format   "
+    echo "============================"
+    echo "Available placeholders: log, pass, ip, port."
+    echo "Example format: log:pass@ip:port or ip:port"
+    echo "============================"
+    read -p "Enter your custom output format: " format
+    if ! [[ "$format" =~ "ip" && "$format" =~ "port" ]]; then
+        echo "Error: The format must include 'ip' and 'port'. Using default format 'ip:port'."
+        format="ip:port"
+    fi
 }
 
 # Функция для обработки прокси, вводимых в терминале
@@ -53,9 +72,10 @@ process_proxies() {
 
     # Чтение прокси из терминала
     while IFS= read -r proxy; do
-        # Разбор прокси на части: log, pass, ip, и port
+        # Установка значений по умолчанию
         log=""; pass=""; ip=""; port=""
 
+        # Разбор прокси на части
         if [[ $proxy =~ ^([^:]+):([^:]+):([^:]+):([^:]+)$ ]]; then
             ip="${BASH_REMATCH[1]}"
             port="${BASH_REMATCH[2]}"
@@ -73,9 +93,22 @@ process_proxies() {
         elif [[ $proxy =~ ^([^:]+):([0-9]+)$ ]]; then
             ip="${BASH_REMATCH[1]}"
             port="${BASH_REMATCH[2]}"
+        elif [[ $proxy =~ ^([^:]+)$ ]]; then
+            ip="${BASH_REMATCH[1]}"
+            port=""  # Порт не указан
         else
             echo "Invalid proxy format: $proxy" >&2
             continue
+        fi
+
+        # Установка порта в зависимости от выбора пользователя
+        if [ "$use_default_port" = true ]; then
+            if [[ -z "$port" ]]; then
+                echo "No port specified in $proxy, using default port 8080."
+                port="8080"
+            fi
+        else
+            port="$custom_port"
         fi
 
         # Заменяем плейсхолдеры в формате на реальные значения
@@ -84,17 +117,16 @@ process_proxies() {
         formatted_proxy="${formatted_proxy//pass/$pass}"
         formatted_proxy="${formatted_proxy//ip/$ip}"
         formatted_proxy="${formatted_proxy//port/$port}"
-        
-        # Сохраняем результат в файл и выводим в консоль
-        echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
+
+        # Добавляем префикс и сохраняем результат в файл
+        echo "$prefix://$formatted_proxy" | tee -a "$OUTPUT_FILE"
     done
 
     echo "Processing completed. Results saved in $OUTPUT_FILE"
 }
 
-# Запуск функции для выбора формата прокси и обработки
-echo "============================"
-echo "   Proxy Processing Script   "
-echo "============================"
+# Запуск функций для выбора типа прокси, порта и формата вывода
+choose_proxy_type
+choose_port_option
 get_proxy_format
 process_proxies
