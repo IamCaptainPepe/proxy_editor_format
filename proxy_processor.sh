@@ -8,27 +8,30 @@ get_proxy_format() {
     echo "============================"
     echo "   Proxy Format Selection Menu   "
     echo "============================"
-    echo "1. With authentication (log:pass@ip:port)"
-    echo "2. Without authentication (ip:port)"
-    echo "3. Custom format"
+    echo "1. Add prefix (http or socks)"
+    echo "2. Custom format"
     echo ""
     echo "Example custom format: log:pass@ip:port or ip:port"
-    echo "Available placeholders: log, pass, ip, port."
+    echo "Available placeholders for custom format: log, pass, ip, port."
     echo "Ensure your format includes 'ip' and 'port'."
     echo "============================"
 
     while true; do
-        read -p "Choose proxy format (1-3): " choice
+        read -p "Choose proxy format (1-2): " choice
         case $choice in
             1)
-                format="log:pass@ip:port"
+                while true; do
+                    read -p "Enter prefix to add (http or socks): " prefix
+                    if [[ "$prefix" == "http" || "$prefix" == "socks" ]]; then
+                        format="$prefix://ip:port"
+                        break
+                    else
+                        echo "Error: Please enter 'http' or 'socks'."
+                    fi
+                done
                 break
                 ;;
             2)
-                format="ip:port"
-                break
-                ;;
-            3)
                 read -p "Enter your custom format (e.g., log:pass@ip:port): " format
                 if [[ "$format" =~ "ip" && "$format" =~ "port" ]]; then
                     break
@@ -37,7 +40,7 @@ get_proxy_format() {
                 fi
                 ;;
             *)
-                echo "Error: Enter a number between 1 and 3."
+                echo "Error: Enter a number between 1 and 2."
                 ;;
         esac
     done
@@ -51,23 +54,27 @@ process_proxies() {
     # Чтение прокси из терминала
     while IFS= read -r proxy; do
         # Разбор прокси на части: log, pass, ip, и port
-        if [[ $proxy =~ ^([^:]+):([^@]+)@(.+):([0-9]+)$ ]]; then
+        if [[ $proxy =~ ^([^:]+):([^@]+)@([^:]+):([0-9]+)$ ]]; then
             log="${BASH_REMATCH[1]}"
             pass="${BASH_REMATCH[2]}"
             ip="${BASH_REMATCH[3]}"
             port="${BASH_REMATCH[4]}"
-        elif [[ $proxy =~ ^(.+):([0-9]+)$ ]]; then
+        elif [[ $proxy =~ ^([^:]+):([0-9]+)$ ]]; then
             ip="${BASH_REMATCH[1]}"
             port="${BASH_REMATCH[2]}"
             log=""
             pass=""
+        else
+            echo "Invalid proxy format: $proxy" >&2
+            continue
         fi
 
         # Заменяем плейсхолдеры в формате на реальные значения
-        formatted_proxy="${format/log/$log}"
-        formatted_proxy="${formatted_proxy/pass/$pass}"
-        formatted_proxy="${formatted_proxy/ip/$ip}"
-        formatted_proxy="${formatted_proxy/port/$port}"
+        formatted_proxy="$format"
+        formatted_proxy="${formatted_proxy//log/$log}"
+        formatted_proxy="${formatted_proxy//pass/$pass}"
+        formatted_proxy="${formatted_proxy//ip/$ip}"
+        formatted_proxy="${formatted_proxy//port/$port}"
         
         # Сохраняем результат в файл и выводим в консоль
         echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
