@@ -75,7 +75,16 @@ process_proxies() {
     > "$OUTPUT_FILE"
 
     # Чтение прокси из терминала
+    proxies=()
     while IFS= read -r proxy; do
+        proxies+=("$proxy")
+    done
+
+    # Запрос нажатия Enter перед обработкой данных
+    echo ""
+    read -p "Press Enter to process and save proxies..."
+
+    for proxy in "${proxies[@]}"; do
         log=""; pass=""; ip=""; port=""
 
         # Парсинг прокси на части
@@ -117,26 +126,23 @@ process_proxies() {
             port="$custom_port"
         fi
 
-        # Замена плейсхолдеров и вывод
+        # Замена плейсхолдеров и форматирование
         formatted_proxy="$format"
         formatted_proxy="${formatted_proxy//log/$log}"
         formatted_proxy="${formatted_proxy//pass/$pass}"
         formatted_proxy="${formatted_proxy//ip/$ip}"
         formatted_proxy="${formatted_proxy//port/$port}"
         
-        # Удаление лишних пробелов, вывод и сохранение прокси
+        # Удаление лишних пробелов и вывод
         formatted_proxy=$(echo "$formatted_proxy" | tr -s ' ')
         if [[ -n "$prefix" ]]; then
-            echo "$prefix://$formatted_proxy" | tee -a "$OUTPUT_FILE"
-        else
-            echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
+            formatted_proxy="$prefix://$formatted_proxy"
         fi
+        
+        echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
     done
 
-    # Пауза после ввода значений и перед окончательным сообщением
-    sleep 1
     echo ""
-
     echo "Processing completed. Results saved in $OUTPUT_FILE"
 }
 
