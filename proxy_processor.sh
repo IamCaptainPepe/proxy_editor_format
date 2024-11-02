@@ -74,7 +74,7 @@ process_proxies() {
     echo "Paste your list of proxies (each on a new line), and press Ctrl+D to finish input:"
     > "$OUTPUT_FILE"
 
-    # Пауза и пустая строка перед выводом
+    # Пауза и пустая строка перед началом вывода
     sleep 1
     echo ""
 
@@ -121,20 +121,20 @@ process_proxies() {
             port="$custom_port"
         fi
 
-        # Замена плейсхолдеров в формате на значения
+        # Замена плейсхолдеров и вывод
         formatted_proxy="$format"
         formatted_proxy="${formatted_proxy//log/$log}"
         formatted_proxy="${formatted_proxy//pass/$pass}"
         formatted_proxy="${formatted_proxy//ip/$ip}"
         formatted_proxy="${formatted_proxy//port/$port}"
         
-        # Вывод и сохранение прокси
+        # Удаление лишних пробелов, вывод и сохранение прокси
+        formatted_proxy=$(echo "$formatted_proxy" | tr -s ' ')
         if [[ -n "$prefix" ]]; then
             echo "$prefix://$formatted_proxy" | tee -a "$OUTPUT_FILE"
         else
             echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
         fi
-        echo ""  # Добавить пустую строку после каждого вывода
     done
 
     echo "Processing completed. Results saved in $OUTPUT_FILE"
