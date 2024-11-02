@@ -37,7 +37,7 @@ choose_port_option() {
     while true; do
         read -p "Choose port option (1, 2, or 3): " port_choice
         case $port_choice in
-            1) use_default_port=true; manual_port=false; break ;;
+            1) use_default_port=true; manual_port=false; custom_port=""; break ;;
             2)
                 read -p "Enter your custom port: " custom_port
                 if ! [[ "$custom_port" =~ ^[0-9]+$ ]] || [ "$custom_port" -le 0 ] || [ "$custom_port" -gt 65535 ]; then
@@ -48,7 +48,7 @@ choose_port_option() {
                     break
                 fi
                 ;;
-            3) use_default_port=false; manual_port=true; break ;;
+            3) use_default_port=false; manual_port=true; custom_port=""; break ;;
             *) echo "Error: Please enter 1, 2, or 3." ;;
         esac
     done
@@ -71,19 +71,28 @@ get_proxy_format() {
 
 # Функция для обработки прокси, вводимых в терминале
 process_proxies() {
-    echo "Paste your list of proxies (each on a new line), and press Ctrl+D to finish input:"
+    echo "Paste your list of proxies (each separated by space or new line), and press Ctrl+D to finish input:"
     > "$OUTPUT_FILE"
 
-    # Чтение прокси из терминала
+    # Чтение прокси из терминала и сохранение в массив
     proxies=()
-    while IFS= read -r proxy; do
-        proxies+=("$proxy")
+    while IFS= read -r line; do
+        # Разделение строки на отдельные прокси по пробелам и табуляциям
+        for proxy in $line; do
+            # Удаление ведущих и замыкающих пробелов
+            proxy=$(echo "$proxy" | xargs)
+            # Добавление в массив, если не пустая
+            if [[ -n "$proxy" ]]; then
+                proxies+=("$proxy")
+            fi
+        done
     done
 
-    # Запрос нажатия Enter перед обработкой данных
+    # Пауза и пустая строка перед обработкой
+    sleep 1
     echo ""
-    read -p "Press Enter to process and save proxies..."
 
+    # Обработка каждой прокси
     for proxy in "${proxies[@]}"; do
         log=""; pass=""; ip=""; port=""
 
@@ -126,23 +135,24 @@ process_proxies() {
             port="$custom_port"
         fi
 
-        # Замена плейсхолдеров и форматирование
+        # Замена плейсхолдеров
         formatted_proxy="$format"
         formatted_proxy="${formatted_proxy//log/$log}"
         formatted_proxy="${formatted_proxy//pass/$pass}"
         formatted_proxy="${formatted_proxy//ip/$ip}"
         formatted_proxy="${formatted_proxy//port/$port}"
-        
-        # Удаление лишних пробелов и вывод
+
+        # Удаление лишних пробелов
         formatted_proxy=$(echo "$formatted_proxy" | tr -s ' ')
+
+        # Добавление префикса (если выбран) и вывод
         if [[ -n "$prefix" ]]; then
-            formatted_proxy="$prefix://$formatted_proxy"
+            echo "$prefix://$formatted_proxy" | tee -a "$OUTPUT_FILE"
+        else
+            echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
         fi
-        
-        echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
     done
 
-    echo ""
     echo "Processing completed. Results saved in $OUTPUT_FILE"
 }
 
