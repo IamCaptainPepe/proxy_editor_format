@@ -40,7 +40,6 @@ choose_port_option() {
             1) use_default_port=true; manual_port=false; break ;;
             2)
                 read -p "Enter your custom port: " custom_port
-                # Проверка, что порт - это число от 1 до 65535
                 if ! [[ "$custom_port" =~ ^[0-9]+$ ]] || [ "$custom_port" -le 0 ] || [ "$custom_port" -gt 65535 ]; then
                     echo "Invalid port number. Please enter a valid port."
                 else
@@ -73,18 +72,17 @@ get_proxy_format() {
 # Функция для обработки прокси, вводимых в терминале
 process_proxies() {
     echo "Paste your list of proxies (each on a new line), and press Ctrl+D to finish input:"
-    > "$OUTPUT_FILE"  # Очистить или создать output файл
+    > "$OUTPUT_FILE"
 
-    # Добавление паузы и пустой строки перед началом обработки
+    # Пауза и пустая строка перед выводом
     sleep 1
     echo ""
 
     # Чтение прокси из терминала
     while IFS= read -r proxy; do
-        # Установка значений по умолчанию
         log=""; pass=""; ip=""; port=""
 
-        # Разбор прокси на части
+        # Парсинг прокси на части
         if [[ $proxy =~ ^([^:]+):([^:]+):([^:]+):([^:]+)$ ]]; then
             ip="${BASH_REMATCH[1]}"
             port="${BASH_REMATCH[2]}"
@@ -104,17 +102,15 @@ process_proxies() {
             port="${BASH_REMATCH[2]}"
         elif [[ $proxy =~ ^([^:]+)$ ]]; then
             ip="${BASH_REMATCH[1]}"
-            port=""  # Порт не указан
+            port=""
         else
             echo "Invalid proxy format: $proxy" >&2
             continue
         fi
 
-        # Установка порта в зависимости от выбора пользователя
+        # Определение порта
         if [ "$use_default_port" = true ]; then
-            if [[ -z "$port" ]]; then
-                port="8080"
-            fi
+            port="${port:-8080}"
         elif [ "$manual_port" = true ] && [[ -z "$port" ]]; then
             read -p "Enter port for $ip: " port
             if ! [[ "$port" =~ ^[0-9]+$ ]] || [ "$port" -le 0 ] || [ "$port" -gt 65535 ]; then
@@ -125,25 +121,26 @@ process_proxies() {
             port="$custom_port"
         fi
 
-        # Заменяем плейсхолдеры в формате на реальные значения
+        # Замена плейсхолдеров в формате на значения
         formatted_proxy="$format"
         formatted_proxy="${formatted_proxy//log/$log}"
         formatted_proxy="${formatted_proxy//pass/$pass}"
         formatted_proxy="${formatted_proxy//ip/$ip}"
         formatted_proxy="${formatted_proxy//port/$port}"
-
-        # Добавляем префикс (если выбран) и сохраняем результат в файл
+        
+        # Вывод и сохранение прокси
         if [[ -n "$prefix" ]]; then
             echo "$prefix://$formatted_proxy" | tee -a "$OUTPUT_FILE"
         else
             echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
         fi
+        echo ""  # Добавить пустую строку после каждого вывода
     done
 
     echo "Processing completed. Results saved in $OUTPUT_FILE"
 }
 
-# Запуск функций для выбора типа прокси, порта и формата вывода
+# Запуск функций
 choose_proxy_type
 choose_port_option
 get_proxy_format
