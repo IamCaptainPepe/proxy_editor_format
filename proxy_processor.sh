@@ -125,7 +125,7 @@ process_proxies() {
             port="$custom_port"
         fi
 
-        # Заменяем плейсхолдеры в формате на реальные значения и убираем лишние пробелы
+        # Заменяем плейсхолдеры в формате на реальные значения
         formatted_proxy="$format"
         formatted_proxy="${formatted_proxy//log/$log}"
         formatted_proxy="${formatted_proxy//pass/$pass}"
