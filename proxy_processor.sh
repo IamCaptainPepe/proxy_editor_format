@@ -75,6 +75,10 @@ process_proxies() {
     echo "Paste your list of proxies (each on a new line), and press Ctrl+D to finish input:"
     > "$OUTPUT_FILE"  # Очистить или создать output файл
 
+    # Добавление паузы и пустой строки перед началом обработки
+    sleep 1
+    echo ""
+
     # Чтение прокси из терминала
     while IFS= read -r proxy; do
         # Установка значений по умолчанию
@@ -109,7 +113,6 @@ process_proxies() {
         # Установка порта в зависимости от выбора пользователя
         if [ "$use_default_port" = true ]; then
             if [[ -z "$port" ]]; then
-                echo "No port specified in $proxy, using default port 8080."
                 port="8080"
             fi
         elif [ "$manual_port" = true ] && [[ -z "$port" ]]; then
@@ -122,7 +125,7 @@ process_proxies() {
             port="$custom_port"
         fi
 
-        # Заменяем плейсхолдеры в формате на реальные значения
+        # Заменяем плейсхолдеры в формате на реальные значения и убираем лишние пробелы
         formatted_proxy="$format"
         formatted_proxy="${formatted_proxy//log/$log}"
         formatted_proxy="${formatted_proxy//pass/$pass}"
