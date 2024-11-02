@@ -74,10 +74,6 @@ process_proxies() {
     echo "Paste your list of proxies (each on a new line), and press Ctrl+D to finish input:"
     > "$OUTPUT_FILE"
 
-    # Пауза и пустая строка перед началом вывода
-    sleep 1
-    echo ""
-
     # Чтение прокси из терминала
     while IFS= read -r proxy; do
         log=""; pass=""; ip=""; port=""
@@ -136,6 +132,10 @@ process_proxies() {
             echo "$formatted_proxy" | tee -a "$OUTPUT_FILE"
         fi
     done
+
+    # Пауза после ввода значений и перед окончательным сообщением
+    sleep 1
+    echo ""
 
     echo "Processing completed. Results saved in $OUTPUT_FILE"
 }
